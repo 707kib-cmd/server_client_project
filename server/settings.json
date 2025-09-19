@@ -1,0 +1,8 @@
+{
+  "server_ip": "172.30.101.232",
+  "server_port": 5050,
+  "client_listen_port": 8123,
+  "log_path": "server_log.txt",
+  "debug_log_path": "client_debug.log",
+  "report_interval_sec": 58
+}

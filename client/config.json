@@ -1,0 +1,49 @@
+{
+  "version_file": "VERSION.txt",
+
+  "server": {
+    "ip": "172.30.101.232",
+    "send_port": 5050,
+    "recv_port": 6000,
+    "http_port": 8123
+  },
+
+  "client": {
+    "listen_port": 54321,
+    "log_file": "client_debug.log",
+    "msg_file": "MessageCache.txt",
+    "ini_file": "MessageCache.ini",
+    "mutex_name": "Global\\MY_CLIENT_MUTEX_LOCK"
+  },
+
+"targets": [
+  "VM_Flow_LoY.exe",
+  "VM_Flow_NC.exe"
+],
+
+"target_alias": {
+  "VM_Flow_LoY.exe": "LoY",
+  "VM_Flow_NC.exe": "NC"
+},
+
+
+  "sensitive_commands": [
+    "RESTART",
+    "SHUTDOWN",
+    "EXIT",
+    "KILL"
+  ],
+
+  "command_whitelist": [
+    "START",
+    "STOP",
+    "SYNC",
+    "REBOOT",
+    "DIAMOND"
+  ],
+
+  "report": {
+    "interval_sec": 58,
+    "enabled": true
+  }
+}

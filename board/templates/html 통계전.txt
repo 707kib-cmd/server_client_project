@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>클라이언트 상태 보드</title>
+  <!-- ✅ Sortable.js + Swap plugin (한 번만 연결) -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/Swap/Sortable.swap.min.js"></script>
+
+  <!-- ✅ Dashboard 기능 -->
+<script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+
+
+  <style>
+    body {
+      margin: 0;
+      padding: 8px;
+      background: #f4f6f8;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    h2 {
+      font-size: 1em;
+      margin: 6px 0;
+      font-weight: 500;
+      text-align: center;
+      color: #333;
+    }
+	
+    .highlight {
+      outline: 2px dashed #007bff;
+      border-radius: 6px;
+	}
+	
+	.ghost-card {
+	  opacity: 0.25;
+	  filter: grayscale(60%);
+	  background-color: #f2f2f2;
+	  pointer-events: none;
+	}
+
+	
+    .button-bar {
+      position: fixed;
+      top: 4px;
+      right: 10px;
+      display: flex;
+      gap: 6px;
+      z-index: 999;
+    }
+    .button-bar button,
+    .button-bar select {
+      font-size: 0.8em;
+      padding: 3px 8px;
+      border: 1px solid #ccc;
+      background: none;
+      color: #333;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .server-summary {
+      position: fixed;
+      top: 4px;
+      left: 10px;
+      z-index: 999;
+      font-size: 0.85em;
+      background: rgba(255,255,255,0.8);
+      padding: 4px 6px;
+      border-radius: 4px;
+      max-width: 90%;
+      line-height: 1.4em;
+      color: #333;
+    }
+    .server-summary span {
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .server-summary span.active {
+      font-weight: bold;
+      color: #007bff;
+      text-decoration: underline;
+    }
+	.grid {
+	  display: flex;           /* 🔁 변경 */
+	  flex-wrap: wrap;         /* 줄바꿈 허용 */
+	  gap: 4px;                /* 간격 살짝 줄임 (원하는 만큼 조절 가능) */
+	  justify-content: flex-start;
+	  margin-top: 48px;
+	}
+	.card {
+	  width: calc((100% - 19 * 4px) / 20);  /* 💡 20개 카드 + 19개 간격 기준으로 자동 폭 설정 */
+	  max-width: 90px;                      /* ✨ 최대 90px까지만 넓어지게 제한 (선택) */
+	  background: white;
+	  border-left: 4px solid #999;
+	  border-radius: 4px;
+	  padding: 3px;                         /* 💡 살짝 줄여서 더 안정적 정렬 */
+	  font-size: 0.68em;
+	  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+	  text-align: center;
+	  box-sizing: border-box;
+	  position: relative;
+	}
+    .name {
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #222;
+    }
+    .info {
+      line-height: 1.3em;
+      color: #555;
+      word-break: break-word;
+    }
+    .empty {
+      opacity: 0.4;
+      font-style: italic;
+      border-left: 4px dashed #bbb;
+    }
+    .delete-btn {
+      position: absolute;
+      top: 2px;
+      right: 6px;
+      font-size: 0.8em;
+      color: #999;
+      cursor: pointer;
+    }
+    .delete-btn:hover {
+      color: #dc3545;
+    }
+  </style>
+</head>
+<body onload="fetchClients()">
+<!-- 🔄 통합된 검색바 라인 -->
+<div id="searchBar" style="text-align: center; margin-top: 8px;">
+  <input
+    id="minDiaInput"
+    type="number"
+    placeholder="다이아 ≥"
+    oninput="applyFilters()"
+    style="padding: 6px 10px; width: 150px; font-size: 0.9em; border-radius: 6px; border: 1px solid #ccc; margin-right: 6px;"
+  />
+  <input
+    id="searchInput"
+    oninput="applyFilters()"
+    placeholder="카드 이름 / 서버 검색..."
+    autocomplete="off"
+    inputmode="search"
+    style="padding: 6px 10px; width: 150px; font-size: 0.9em; border-radius: 6px; border: 1px solid #ccc;"
+  />
+</div>
+
+
+
+  <div class="button-bar">
+    <button onclick="addEmptyCard()">빈 카드 추가</button>
+    <button id="toggle-btn" onclick="toggleCondensed()">간결 모드</button>
+    <select id="threshold" onchange="fetchClients()">
+      <option value="5">5분 기준</option>
+      <option value="10">10분 기준</option>
+      <option value="15">15분 기준</option>
+      <option value="20">20분 기준</option>
+      <option value="30">30분 기준</option>
+    </select>
+  </div>
+
+  <div class="server-summary" id="serverSummary">서버 요약</div>
+  <div class="grid" id="dashboard"></div>
+
+ 
+</body>

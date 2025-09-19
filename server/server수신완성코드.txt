@@ -1,0 +1,150 @@
+# ========================================
+# 💻 다이아/오토핫키 상태 수신 서버
+# 📦 파일명: server.py
+# 📅 버전: v1.5.0 (2025-06-30)
+# 👨‍💻 개선사항:
+#   - 클라이언트에게 AHK 메시지 전송 기능 추가
+#   - 수신/송신 로그 정제 및 오류 로깅 강화
+# ========================================
+
+import sys, socket, threading, json, datetime, time
+import os, traceback
+
+# 실행 위치 기준 디렉터리 (EXE 대응 포함)
+BASE_DIR = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
+
+# 기본 설정값
+DEFAULT_CONFIG = {
+    "server_ip": "0.0.0.0",
+    "server_port": 5050,
+    "log_path": os.path.join(BASE_DIR, "server_log.txt"),
+    "debug_log_path": os.path.join(BASE_DIR, "client_debug.log"),
+    "report_interval_sec": 58
+}
+
+# 현재 시각 문자열 반환
+def now():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+# 설정 불러오기
+def load_config():
+    try:
+        with open(os.path.join(BASE_DIR, "settings.json"), "r", encoding="utf-8") as f:
+            user = json.load(f)
+            return {**DEFAULT_CONFIG, **user}
+    except:
+        return DEFAULT_CONFIG
+
+# 로그 출력 함수
+def log(msg, file):
+    text = f"[{now()}] {msg}"
+    print(text)
+    try:
+        with open(file, "a", encoding="utf-8") as f:
+            f.write(text + "\n")
+    except:
+        pass  # 로그 파일 접근 문제 있을 시 무시
+
+# AHK 생존 기록 저장소
+ahk_map = {}  # {name: last_report_time}
+ahk_lock = threading.Lock()
+
+# 감시 루프: 일정 시간 이상 수신 없으면 경고 출력
+def watch_ahk(alert_sec, log_path):
+    while True:
+        now_ts = time.time()
+        with ahk_lock:
+            for name, last in list(ahk_map.items()):
+                if now_ts - last > alert_sec:
+                    mins = int((now_ts - last) // 60)
+                    log(f"❗AHK 수신 중단 → {name} ({mins}분 이상)", log_path)
+        time.sleep(60)
+
+# 클라이언트에 TCP로 메시지 전송 (→ 클라가 AHK 실행)
+def send_to_client(client_ip, message, log_path):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.connect((client_ip, 6000))
+            sock.sendall(message.encode("utf-8"))
+        log(f"📤 클라로 명령 전송 → {client_ip} | 내용: {message}", log_path)
+    except Exception as e:
+        log(f"⚠️ 클라 전송 실패 → {client_ip} | 오류: {e}", log_path)
+
+# 수신 처리 함수
+def handle_client(conn, addr, log_path):
+    try:
+        raw = conn.recv(2048)
+        if not raw:
+            log(f"⚠️ 수신 실패: 빈 데이터", log_path)
+            return
+
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except Exception as e:
+            log(f"⚠️ JSON 파싱 실패: {e}", log_path)
+            return
+
+        ip = payload.get("ip", addr[0])
+        name = payload.get("name", "unknown")
+        value = payload.get("value", "?")
+
+        # 예: "8248 | send"
+        if isinstance(value, str) and "|" in value:
+            diamond, mode = map(str.strip, value.split("|", 1))
+            mode = mode.lower()
+            with ahk_lock:
+                ahk_map[name] = time.time()
+            log(f"수신 → {ip} | {name} | {diamond} | {mode}", log_path)
+
+            # ✅ send 모드일 경우 → AHK 메시지 전송
+            if mode == "send":
+                ahk_text = f"[서버] '{name}' 다이아 수신: {diamond}"
+                send_to_client(ip, ahk_text, log_path)
+
+        else:
+            # 생존 신호만 보낸 경우
+            if str(value).strip().upper() == "AHK":
+                with ahk_lock:
+                    ahk_map[name] = time.time()
+                log(f"수신 → {ip} | {name} | AHK 생존", log_path)
+            else:
+                with ahk_lock:
+                    ahk_map[name] = time.time()
+                log(f"수신 → {ip} | {name} | {value}", log_path)
+
+    except Exception as e:
+        log(f"⚠️ 수신 처리 실패: {e}\n{traceback.format_exc()}", log_path)
+    finally:
+        conn.close()
+
+# 서버 메인 루프
+def start_server():
+    config = load_config()
+    host = config["server_ip"]
+    port = config["server_port"]
+    log_path = config["log_path"]
+    alert_sec = config.get("report_interval_sec", 58) * 2
+
+    log(f"✅ 서버 포트 {port} 수신 대기 중...", log_path)
+
+    threading.Thread(target=watch_ahk, args=(alert_sec, log_path), daemon=True).start()
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        s.bind((host, port))
+        s.listen(5)
+    except Exception as e:
+        log(f"⚠️ 서버 바인딩 실패: {e}", log_path)
+        return
+
+    while True:
+        try:
+            conn, addr = s.accept()
+            threading.Thread(target=handle_client, args=(conn, addr, log_path), daemon=True).start()
+        except Exception as e:
+            log(f"⚠️ 클라이언트 수신 오류: {e}", log_path)
+
+# 시작 포인트
+if __name__ == "__main__":
+    start_server()

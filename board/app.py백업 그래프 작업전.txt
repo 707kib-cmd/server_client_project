@@ -1,0 +1,36 @@
+from flask import Flask, render_template, jsonify
+import sqlite3
+import os
+
+# ✅ static 경로 지정
+app = Flask(__name__, static_folder='static', template_folder='templates')
+
+# ✅ DB 경로 설정
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "..", "server", "client_status.db")
+
+# ✅ HTML 렌더링
+@app.route("/")
+def dashboard():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM clients ORDER BY last_report DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return render_template("dashboard.html", data=rows)
+
+# ✅ API 엔드포인트
+@app.route("/api/clients")
+def api_clients():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM clients ORDER BY last_report DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
+
+# ✅ 서버 실행
+if __name__ == "__main__":
+    app.run(debug=True, port=8000)

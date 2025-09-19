@@ -1,0 +1,1 @@
+powershell -Command "$ip='172.30.101.223'; $port=8123; $msg='OCR_TEST_8248'; $client=New-Object System.Net.Sockets.TcpClient($ip,$port); $stream=$client.GetStream(); $writer=New-Object System.IO.StreamWriter($stream); $writer.WriteLine($msg); $writer.Flush(); $client.Close(); Write-Output '📡 메시지 전송 완료: '+$msg"

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <script src="/static/dashboard.js"></script>
+    <title>📅 다이아 수량 추적 기록</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: 'Segoe UI', sans-serif;
+            background: #fff;
+            color: #333;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        #searchClient {
+            padding: 6px;
+            font-size: 0.9em;
+            width: 240px;
+        }
+
+        #suggestList {
+            max-height: 120px;
+            overflow-y: auto;
+            display: none;
+            background: #fff;
+            border: 1px solid #ccc;
+            position: absolute;
+            z-index: 100;
+            width: 240px;
+        }
+
+        .suggest-item {
+            padding: 4px 6px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .suggest-item:hover {
+            background: #ddd;
+        }
+
+        .layout {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .history-column {
+            flex: 0 0 550px; /* ✅ 폭 넉넉히 확보 */
+            max-width: 600px; /* 여유를 더 주고 싶다면 여기까지도 OK */
+            max-height: 840px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+
+        .chart-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .client-line {
+          display: flex;
+          justify-content: space-between;  /* 좌우로 요소 분배: 좌측 텍스트 + 우측 sparkline */
+          white-space: nowrap;             /* 줄바꿈 방지 */
+          font-family: monospace;          /* 글자 간격 일정하게 → sparkline 가독성 강화 */
+          font-size: 13px;                 /* 리스트 줄 높이 절제 */
+        }
+
+
+        .client-line {
+          display: flex;
+          justify-content: space-between;
+          white-space: nowrap;
+          font-family: 'Segoe UI', sans-serif;  /* 예전대로 */
+          font-size: 15px;                      /* 기존 크기로 복원 */
+        }
+
+        canvas {
+            background: #fff;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: block;
+            margin: auto;
+        }
+
+        h1, h2 {
+            font-size: 1.2em;
+            margin: 16px 0 8px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 4px;
+        }
+
+        .chart-toolbar {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        #serverFilter button {
+            margin-right: 6px;
+            margin-bottom: 4px;
+        }
+
+        .gray-btn {
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border: 1px solid #ccc;
+            background: none;
+            color: #333;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .gray-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            background: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+
+<div id="serverSummary"
+     style="position:absolute; top:12px; left:12px;
+              background:rgba(255,255,255,0.8);
+              padding:4px 8px; border-radius:4px;
+              font-weight:bold; z-index:10;">
+    로딩 중...
+</div>
+
+
+<h1>📅 다이아 수량 추적 기록</h1>
+<div class="top-bar">
+    <div id="serverSummary"></div>
+    <div style="position: relative;">
+        <input id="searchClient" placeholder="🔍 클라이언트 검색..." oninput="filterClientName(window)"/>
+        <div id="suggestList"></div>
+    </div>
+    <div id="serverFilter"></div>
+</div>
+
+<div class="layout">
+    <div class="history-column">
+        <div id="diaHistoryContent">
+            <div class="history-text">⏳ 데이터 불러오는 중...</div>
+        </div>
+
+    </div>
+    <div class="chart-column">
+        <div>
+            <h2 style="text-align: center;">📊 TOTAL 추세 그래프</h2>
+            <div class="chart-toolbar">
+                <button onclick="renderTotalTrendChart(3, window)">3일</button>
+                <button onclick="renderTotalTrendChart(7, window)">7일</button>
+                <button onclick="renderTotalTrendChart(30, window)">30일</button>
+                <button onclick="renderTotalTrendChart(999, window)">전체</button>
+            </div>
+            <canvas id="totalTrendChart" width="960" height="300"></canvas>
+        </div>
+
+        <div>
+            <h2 style="text-align: center;">📊 서버별 추세선</h2>
+            <div class="chart-toolbar">
+                <button onclick="renderServerTrendChart(3, window)">3일</button>
+                <button onclick="renderServerTrendChart(7, window)">7일</button>
+                <button onclick="renderServerTrendChart(30, window)">30일</button>
+                <button onclick="renderServerTrendChart(999, window)">전체</button>
+            </div>
+            <canvas id="serverTrendChart" width="960" height="300"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ 의존 JS들 -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="dashboard.js"></script>
+<script>
+    window.addEventListener("DOMContentLoaded", () => {
+        // 렌더 함수 준비
+        win = window;
+
+        win.renderDiaHistoryContent = renderDiaHistoryContent;
+        win.renderTotalTrendChart = renderTotalTrendChart;
+        win.renderServerTrendChart = renderServerTrendChart;
+
+        // 초기 렌더링 호출
+        renderDiaHistoryContent(win);
+        renderTotalTrendChart(7, win);
+        renderServerTrendChart(7, win);
+
+        // 🔁 서버 필터 버튼 구성
+        const raw = localStorage.getItem("dailyDiaStats");
+        const data = JSON.parse(raw || "{}");
+        const serverSet = new Set();
+        Object.values(data).forEach(day => {
+            Object.keys(day).forEach(name => {
+                if (!["TOTAL", "SERVER_SUM", "COUNT_BY_SERVER"].includes(name)) {
+                    const server = name.split("-")[0];
+                    serverSet.add(server);
+                }
+            });
+        });
+
+        const serverDiv = document.getElementById("serverFilter");
+        const allBtn = document.createElement("button");
+        allBtn.textContent = "전체";
+        allBtn.onclick = () => renderDiaHistoryContent(win, null);
+        serverDiv.appendChild(allBtn);
+
+        Array.from(serverSet).sort().forEach(server => {
+            const btn = document.createElement("button");
+            btn.textContent = server;
+            btn.onclick = () => renderDiaHistoryContent(win, server);
+            serverDiv.appendChild(btn);
+        });
+    });
+
+    // 🔍 자동 제안 검색 기능 정의 (기존 팝업 방식 동일)
+    function filterClientName(win = window) {
+        const inputEl = win.document.getElementById("searchClient");
+        const suggestDiv = win.document.getElementById("suggestList");
+        if (!inputEl || !suggestDiv) return;
+        const input = inputEl.value.trim().toLowerCase();
+        const raw = localStorage.getItem("dailyDiaStats");
+        if (!raw) return;
+
+        const dataMap = JSON.parse(raw);
+        const allNames = new Set();
+
+        Object.values(dataMap).forEach(day => {
+            Object.keys(day).forEach(name => {
+                if (!["TOTAL", "SERVER_SUM", "COUNT_BY_SERVER"].includes(name)) {
+                    allNames.add(name);
+                }
+            });
+        });
+
+        const matched = Array.from(allNames).filter(name =>
+            name.toLowerCase().includes(input)
+        ).slice(0, 10);
+
+        suggestDiv.innerHTML = "";
+        let selectedIndex = -1;
+
+        matched.forEach((name, i) => {
+            const div = win.document.createElement("div");
+            div.textContent = name;
+            div.className = "suggest-item";
+            div.onmouseover = () => updateHighlight(i);
+            div.onmouseout = () => updateHighlight(-1);
+            div.onclick = () => {
+                inputEl.value = name;
+                suggestDiv.style.display = "none";
+                win.renderDiaHistoryContent(win, null, name);
+            };
+            suggestDiv.appendChild(div);
+        });
+
+        suggestDiv.style.display = matched.length ? "block" : "none";
+
+        if (!inputEl._keyboardAttached) {
+            inputEl.addEventListener("keydown", (e) => {
+                const items = suggestDiv.querySelectorAll(".suggest-item");
+                if (!items.length) return;
+
+                if (e.key === "ArrowDown") {
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateHighlight(selectedIndex);
+                    e.preventDefault();
+                } else if (e.key === "ArrowUp") {
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    updateHighlight(selectedIndex);
+                    e.preventDefault();
+                } else if (e.key === "Enter") {
+                    if (selectedIndex >= 0 && items[selectedIndex]) {
+                        inputEl.value = items[selectedIndex].textContent;
+                        suggestDiv.style.display = "none";
+                        win.renderDiaHistoryContent(win, null, inputEl.value);
+                        selectedIndex = -1;
+                    }
+                } else if (e.key === "Escape") {
+                    suggestDiv.style.display = "none";
+                    selectedIndex = -1;
+                }
+            });
+            inputEl._keyboardAttached = true;
+        }
+
+        function updateHighlight(index) {
+            const items = suggestDiv.querySelectorAll(".suggest-item");
+            items.forEach((el, i) => {
+                el.style.background = i === index ? "#ddd" : "";
+            });
+        }
+    }
+</script>
+
+<!-- 여기에 차트 함수를 호출하는 스크립트 추가 -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("▶ 페이지 로드, 차트 렌더 시작");
+        // 7일치 TOTAL·서버별 추세 차트 그리기
+        renderTotalTrendChart(7, window);
+        renderServerTrendChart(7, window);
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1) serverFilter, setServerFilter 전역으로 정의되어 있어야 합니다.
+        //    (cardboard 스크립트에서 이미 선언된 상태라면 그대로 사용)
+        window.serverFilter = window.serverFilter || null;
+
+        // 2) API 호출 후 요약 함수 실행
+        fetch('/api/clients')
+            .then(res => res.json())
+            .then(data => updateServerSummary(data))
+            .catch(err => console.error('❌ server summary error', err));
+
+        // 3) 기존 차트 렌더링도 그대로
+        renderTotalTrendChart(7, window);
+        renderServerTrendChart(7, window);
+    });
+</script>
+
+</body>
+</html>
