@@ -3,131 +3,8 @@
 <head>
     <meta charset="UTF-8"/>
     <script src="/static/dashboard.js"></script>
+    <link rel="stylesheet" href="/static/css/dia-history.css">
     <title>📅 다이아 수량 추적 기록</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 24px;
-            font-family: 'Segoe UI', sans-serif;
-            background: #fff;
-            color: #333;
-        }
-
-        .top-bar {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        #searchClient {
-            padding: 6px;
-            font-size: 0.9em;
-            width: 240px;
-        }
-
-        #suggestList {
-            max-height: 120px;
-            overflow-y: auto;
-            display: none;
-            background: #fff;
-            border: 1px solid #ccc;
-            position: absolute;
-            z-index: 100;
-            width: 240px;
-        }
-
-        .suggest-item {
-            padding: 4px 6px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-
-        .suggest-item:hover {
-            background: #ddd;
-        }
-
-        .layout {
-            display: flex;
-            gap: 24px;
-            align-items: flex-start;
-        }
-
-        .history-column {
-            flex: 0 0 550px; /* ✅ 폭 넉넉히 확보 */
-            max-width: 600px; /* 여유를 더 주고 싶다면 여기까지도 OK */
-            max-height: 840px;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-
-
-        .chart-column {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 28px;
-        }
-
-        .client-line {
-          display: flex;
-          justify-content: space-between;  /* 좌우로 요소 분배: 좌측 텍스트 + 우측 sparkline */
-          white-space: nowrap;             /* 줄바꿈 방지 */
-          font-family: monospace;          /* 글자 간격 일정하게 → sparkline 가독성 강화 */
-          font-size: 13px;                 /* 리스트 줄 높이 절제 */
-        }
-
-
-        .client-line {
-          display: flex;
-          justify-content: space-between;
-          white-space: nowrap;
-          font-family: 'Segoe UI', sans-serif;  /* 예전대로 */
-          font-size: 15px;                      /* 기존 크기로 복원 */
-        }
-
-        canvas {
-            background: #fff;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            display: block;
-            margin: auto;
-        }
-
-        h1, h2 {
-            font-size: 1.2em;
-            margin: 16px 0 8px;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 4px;
-        }
-
-        .chart-toolbar {
-            text-align: center;
-            margin-bottom: 8px;
-        }
-
-        #serverFilter button {
-            margin-right: 6px;
-            margin-bottom: 4px;
-        }
-
-        .gray-btn {
-            font-size: 0.8em;
-            padding: 3px 8px;
-            border: 1px solid #ccc;
-            background: none;
-            color: #333;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .gray-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            background: #f5f5f5;
-        }
-    </style>
 </head>
 <body>
 
@@ -140,7 +17,7 @@
 </div>
 
 
-<h1>📅 다이아 수량 추적 기록</h1>
+<h1 style="margin-top: 20px; margin-bottom: 10px;">📅 다이아 수량 추적 기록</h1>
 <div class="top-bar">
     <div id="serverSummary"></div>
     <div style="position: relative;">

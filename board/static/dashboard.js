@@ -373,6 +373,10 @@ async function fetchClients() {
         // INI 명령 시스템 초기화 추가
         initializeCommandSystem();
 
+        // 서버 상태 확인 시작
+        checkServerStatus();
+        setInterval(checkServerStatus, 5000); // 5초마다 확인
+
     } catch (err) {
         console.error("fetchClients 중 예외 발생:", err);
     }
@@ -678,6 +682,104 @@ function deleteSelectedRows() {
     // 즉시 새로고침
     console.log("새로고침 실행");
     location.reload();
+}
+
+// 서버 상태 확인 함수
+async function checkServerStatus() {
+    try {
+        const response = await fetch('/api/server-status');
+        const status = await response.json();
+
+        // 메인 서버 상태 업데이트
+        const mainServerDot = document.querySelector('#mainServerStatus span');
+        const mainServerStatus = document.getElementById('mainServerStatus');
+        if (status.main_server) {
+            mainServerDot.style.background = '#28a745'; // 초록색 (정상)
+            mainServerDot.title = `메인 서버 실행중 (포트 ${status.main_server_port})`;
+            mainServerStatus.style.cursor = 'default';
+            mainServerStatus.title = `메인 서버 실행중 (포트 ${status.main_server_port})`;
+        } else {
+            mainServerDot.style.background = '#dc3545'; // 빨간색 (중지)
+            mainServerDot.title = `메인 서버 중지됨 - 클릭하여 시작`;
+            mainServerStatus.style.cursor = 'pointer';
+            mainServerStatus.title = `메인 서버 중지됨 - 클릭하여 시작 (포트 ${status.main_server_port})`;
+        }
+
+        // 웹 서버 상태 업데이트
+        const webServerDot = document.querySelector('#webServerStatus span');
+        const webServerStatus = document.getElementById('webServerStatus');
+        if (status.web_server) {
+            webServerDot.style.background = '#28a745'; // 초록색 (정상)
+            webServerDot.title = `웹 서버 실행중 (포트 ${status.web_server_port})`;
+            webServerStatus.style.cursor = 'default';
+            webServerStatus.title = `웹 서버 실행중 (포트 ${status.web_server_port})`;
+        } else {
+            webServerDot.style.background = '#dc3545'; // 빨간색 (중지)
+            webServerDot.title = `웹 서버 중지됨 - 클릭하여 시작`;
+            webServerStatus.style.cursor = 'pointer';
+            webServerStatus.title = `웹 서버 중지됨 - 클릭하여 시작 (포트 ${status.web_server_port})`;
+        }
+
+        // 프로세스 정보 추가 (옵션)
+        if (status.processes && status.processes.length > 0) {
+            const processInfo = status.processes.map(p => `${p.name} (PID: ${p.pid})`).join('\n');
+            document.getElementById('serverStatus').title = `실행중인 프로세스:\n${processInfo}`;
+        }
+
+    } catch (error) {
+        console.error('서버 상태 확인 실패:', error);
+        // 에러 시 모든 상태를 중지로 표시
+        document.querySelectorAll('#serverStatus span span').forEach(dot => {
+            dot.style.background = '#ffc107'; // 노란색 (알 수 없음)
+            dot.title = '상태 확인 실패';
+        });
+    }
+}
+
+// 서버 클릭 핸들러
+async function handleServerClick(serverType) {
+    try {
+        // 현재 상태 확인
+        const statusResponse = await fetch('/api/server-status');
+        const status = await statusResponse.json();
+
+        let isRunning = false;
+        if (serverType === 'main') {
+            isRunning = status.main_server;
+        } else if (serverType === 'web') {
+            isRunning = status.web_server;
+        }
+
+        // 서버가 중지되어 있을 때만 시작
+        if (!isRunning) {
+            const confirmed = confirm(`${serverType === 'main' ? '메인' : '웹'} 서버를 시작하시겠습니까?`);
+            if (!confirmed) return;
+
+            const response = await fetch('/api/start-server', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ type: serverType })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert(result.message);
+                // 3초 후 상태 다시 확인
+                setTimeout(checkServerStatus, 3000);
+            } else {
+                alert('서버 시작 실패: ' + result.message);
+            }
+        } else {
+            // 이미 실행중일 때
+            alert(`${serverType === 'main' ? '메인' : '웹'} 서버는 이미 실행중입니다.`);
+        }
+
+    } catch (error) {
+        console.error('서버 시작 요청 실패:', error);
+        alert('서버 시작 요청 중 오류가 발생했습니다.');
+    }
 }
 
 window.addEventListener("DOMContentLoaded", () => {

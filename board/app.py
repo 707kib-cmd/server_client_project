@@ -26,7 +26,7 @@
 🎯 용도: 게임 봇/클라이언트 관리 시스템 (다중 서버, 다중 계정 모니터링)
 """
 
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, make_response
 import sqlite3
 import os
 import datetime
@@ -38,14 +38,23 @@ from server_send import send_ini_command
 # ───────────────────────────────────────────────────────
 app = Flask(
     __name__,
-    static_folder='static',
-    template_folder='templates'
+    static_folder='../css',     # CSS 폴더
+    static_url_path='/css',     # CSS URL 경로
+    template_folder='../'       # 프로젝트 루트 HTML 파일들
 )
 
 # 🗃️ 데이터베이스 경로 설정
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH  = os.path.join(BASE_DIR, '..', 'server', 'client_status.db')
 print("▶ 실제 사용하는 DB_PATH:", DB_PATH, flush=True)
+
+# 🌐 CORS 설정 (파일 직접 접근 허용)
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 
 def init_ini_commands_db():
@@ -85,7 +94,15 @@ def dashboard():
         rows = conn.execute(
             "SELECT * FROM clients ORDER BY last_report DESC"
         ).fetchall()
-    return render_template('dashboard.html', data=rows)
+    return render_template('index.html', data=rows)
+
+# JS 파일 라우트 추가
+@app.route('/js/<path:filename>')
+def js_files(filename):
+    """JS 파일 서빙"""
+    from flask import send_from_directory
+    js_dir = os.path.join(BASE_DIR, '..', 'js')
+    return send_from_directory(js_dir, filename)
 
 
 @app.route('/api/clients')
@@ -249,6 +266,100 @@ def send_ini_command():
 
     except Exception as e:
         return jsonify({'success': False, 'message': f'전송 실패: {str(e)}'})
+
+# ───────────────────────────────────────────────────────
+# 서버 상태 확인 API
+# ───────────────────────────────────────────────────────
+@app.route('/api/server-status')
+def get_server_status():
+    """메인 서버와 웹 서버 상태 확인"""
+    import socket
+    import psutil
+    import os
+
+    status = {
+        'main_server': False,
+        'web_server': True,  # 이 API가 응답하면 웹서버는 실행중
+        'main_server_port': 5050,
+        'web_server_port': 8000,
+        'processes': []
+    }
+
+    try:
+        # 메인 서버 포트 5050 확인 (여러 IP 시도)
+        ips_to_check = ['127.0.0.1', '172.30.101.232', 'localhost']
+        status['main_server'] = False
+
+        for ip in ips_to_check:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1)
+                result = sock.connect_ex((ip, 5050))
+                sock.close()
+                if result == 0:
+                    status['main_server'] = True
+                    status['main_server_ip'] = ip
+                    break
+            except:
+                continue
+    except:
+        status['main_server'] = False
+
+    try:
+        # 실행중인 Python 프로세스 확인
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if proc.info['name'] == 'python.exe' or proc.info['name'] == 'python':
+                    cmdline = ' '.join(proc.info['cmdline']) if proc.info['cmdline'] else ''
+                    if 'server.py' in cmdline:
+                        status['processes'].append({
+                            'name': '메인 서버',
+                            'pid': proc.info['pid'],
+                            'file': 'server.py'
+                        })
+                    elif 'app.py' in cmdline:
+                        status['processes'].append({
+                            'name': '웹 서버',
+                            'pid': proc.info['pid'],
+                            'file': 'app.py'
+                        })
+            except:
+                continue
+    except:
+        pass
+
+    return jsonify(status)
+
+@app.route('/api/start-server', methods=['POST'])
+def start_server():
+    """서버 시작"""
+    import subprocess
+    import os
+
+    data = request.get_json()
+    server_type = data.get('type', '')
+
+    try:
+        if server_type == 'main':
+            # 메인 서버 시작
+            server_path = os.path.join(os.path.dirname(__file__), '..', 'server', 'server.py')
+            if os.path.exists(server_path):
+                subprocess.Popen(['python', '-X', 'utf8', server_path],
+                               cwd=os.path.dirname(server_path),
+                               creationflags=subprocess.CREATE_NEW_CONSOLE)
+                return jsonify({'success': True, 'message': '메인 서버 시작 중...'})
+            else:
+                return jsonify({'success': False, 'message': '메인 서버 파일을 찾을 수 없습니다'})
+
+        elif server_type == 'web':
+            # 웹 서버는 이미 실행중이므로 메시지만
+            return jsonify({'success': True, 'message': '웹 서버는 이미 실행중입니다'})
+
+        else:
+            return jsonify({'success': False, 'message': '알 수 없는 서버 타입'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'서버 시작 실패: {str(e)}'})
 
 # ───────────────────────────────────────────────────────
 # 서버 실행

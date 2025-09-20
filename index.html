@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>클라이언트 상태 보드</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script> <!-- Sortable.js: 드래그 앤 드롭으로 카드 위치 변경 가능 -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/Swap/Sortable.swap.min.js"></script> <!-- Swap 플러그인: 카드 위치 교체 기능 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  <!-- Chart.js: 그래프/차트 렌더링 -->
+
+    <!-- 🎯 모듈화된 JavaScript 파일들 -->
+    <script src="js/core/state.js"></script>
+    <script src="js/core/utils.js"></script>
+    <script src="js/core/api.js"></script>
+    <script src="js/dashboard/cards.js"></script>
+    <script src="js/dashboard/filters.js"></script>
+    <script src="js/charts/dia-history.js"></script>
+    <script src="js/modals/ini-command.js"></script>
+    <script src="js/modals/templates.js"></script>
+    <script src="js/main.js"></script> <!-- 🚀 메인 진입점 -->
+
+    <link rel="stylesheet" href="css/dashboard.css"> <!-- 📊 대시보드 스타일 -->
+</head>
+
+<!-- 🚀 main.js에서 자동 초기화 처리 -->
+<body>
+
+<!-- Cache bust: 20250920_v4_simple -->
+<h1 style="margin-top: 10px; margin-bottom: 10px; font-size: 1.2em;">📊 대시보드</h1>
+
+<!-- 🔍 통합 검색/필터 바 -->
+<div id="searchBar" style="display: flex; justify-content: center; align-items: center; margin-top: 8px; margin-bottom: -35px; position: relative;">
+    <!-- 💎 다이아몬드 수량 필터 (최소값 설정) -->
+    <div style="position: absolute; left: 0; display: flex; gap: 6px;">
+        <button onclick="clearAllSelections()" class="gray-btn">전체 해제</button>
+        <button onclick="deleteSelectedRows()" class="gray-btn" style="background: #dc3545; color: white;">선택된 줄 삭제</button>
+        <button id="openCommandModal" class="gray-btn">INI 명령 전송</button>
+        <button onclick="addEmptyCard()" class="gray-btn">빈 카드 추가</button>
+        <button id="toggle-btn" onclick="toggleCondensed()" class="gray-btn">간결 모드</button>
+        <button onclick="autoSortByNumbers()" class="gray-btn">번호순 정렬</button>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 4px; margin-right: 6px;">
+        <input
+                id="minDiaInput"
+                type="number"
+                placeholder="다이아 ≥"
+                oninput="applyFilters()"
+                style="padding: 6px 6px; width: 60px; font-size: 0.9em; border-radius: 6px; border: 1px solid #ccc;"
+        />
+        <span id="rangeIndicator" style="font-size: 0.8em; color: #666; display: none;">~</span>
+        <input
+                id="maxDiaInput"
+                type="number"
+                placeholder="최대"
+                oninput="applyFilters()"
+                style="padding: 6px 6px; width: 55px; font-size: 0.9em; border-radius: 6px; border: 1px solid #ccc; display: none;"
+        />
+        <button id="rangeToggle" onclick="toggleDiaRange()" style="
+            padding: 4px 6px;
+            font-size: 0.7em;
+            border: 1px solid #ccc;
+            background: #f8f9fa;
+            border-radius: 3px;
+            cursor: pointer;
+            color: #666;
+        ">범위</button>
+    </div>
+    <!-- 🔎 텍스트 검색 (카드 이름, 서버명 등) -->
+    <input
+            id="searchInput"
+            oninput="applyFilters()"
+            placeholder="카드 이름 / 서버 검색..."
+            autocomplete="off"
+            inputmode="search"
+            style="padding: 6px 10px; width: 150px; font-size: 0.9em; border-radius: 6px; border: 1px solid #ccc;"
+    />
+
+    <!-- 갱신 간격 선택 버튼들 -->
+    <div style="position: absolute; right: 0; display: flex; align-items: center; gap: 4px;">
+        <!-- 갱신 진행률 바 -->
+        <div id="refreshProgressBar" style="
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            height: 2px;
+            background: #007bff;
+            width: 0%;
+            transition: width 0.1s linear;
+            z-index: 1;
+        "></div>
+
+        <span style="font-size: 0.8em; color: #666; margin-right: 4px;">갱신:</span>
+        <button onclick="setRefreshInterval(30)" class="refresh-btn" data-interval="30">30초</button>
+        <button onclick="setRefreshInterval(60)" class="refresh-btn" data-interval="60">1분</button>
+        <button onclick="setRefreshInterval(120)" class="refresh-btn" data-interval="120">2분</button>
+        <button onclick="setRefreshInterval(240)" class="refresh-btn" data-interval="240">4분</button>
+        <button onclick="setRefreshInterval(300)" class="refresh-btn" data-interval="300">5분</button>
+        <button onclick="setRefreshInterval(600)" class="refresh-btn" data-interval="600">10분</button>
+        <button onclick="setRefreshInterval(900)" class="refresh-btn" data-interval="900">15분</button>
+        <button onclick="setRefreshInterval(1200)" class="refresh-btn" data-interval="1200">20분</button>
+        <button onclick="setRefreshInterval(1800)" class="refresh-btn" data-interval="1800">30분</button>
+        <button onclick="setRefreshInterval(3600)" class="refresh-btn" data-interval="3600">1시간</button>
+    </div>
+</div>
+
+
+<div class="server-summary" id="serverSummary">서버 요약</div> <!-- 📊 좌측 상단 서버 요약 정보 -->
+
+<!-- 서버 상태 표시 (우상단) -->
+<div id="serverStatus" style="position: fixed; top: 0px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <span id="mainServerStatus" style="display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="handleServerClick('main')">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #ccc;"></span>
+            메인서버
+        </span>
+        <span id="webServerStatus" style="display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="handleServerClick('web')">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #ccc;"></span>
+            웹서버
+        </span>
+    </div>
+</div>
+
+
+<div class="grid" id="dashboard"></div> <!-- 🏗️ 메인 대시보드 컨테이너 (카드들이 여기에 동적으로 생성됨) -->
+
+
+
+<!-- INI 명령 전송 모달 -->
+<div id="commandModal" class="modal">
+<div class="modal-content">
+    <div class="modal-header">
+        <h3>INI 명령 전송</h3>
+        <span class="close">&times;</span>
+    </div>
+
+    <div class="modal-body">
+        <div class="left-panel">
+            <!-- 대상 선택 섹션 -->
+            <div class="target-selection">
+                <h4>전송 대상</h4>
+                <div class="target-option">
+                    <label>
+                        <input type="radio" name="target" value="all" checked>
+                        전체 (<span id="allCount">0</span>개):
+                        <span id="allPreview" class="target-preview"></span>
+                        <button id="allShowAllBtn" class="mini-show-all-btn" onclick="showAllTargets('all')">전체보기</button>
+                    </label>
+                    <div id="allTargetList" class="target-list" style="display:none;"></div>
+                </div>
+                <div class="target-option">
+                    <label>
+                        <input type="radio" name="target" value="filtered">
+                        필터 (<span id="filteredCount">0</span>개):
+                        <span id="filteredPreview" class="target-preview"></span>
+                        <button id="filteredShowAllBtn" class="mini-show-all-btn" onclick="showAllTargets('filtered')">전체보기</button>
+                    </label>
+                    <div id="filteredTargetList" class="target-list" style="display:none;"></div>
+                </div>
+                <div class="target-option">
+                    <label>
+                        <input type="radio" name="target" value="selected">
+                        선택 (<span id="selectedCount">0</span>개):
+                        <span id="selectedPreview" class="target-preview"></span>
+                        <button id="selectedShowAllBtn" class="mini-show-all-btn" onclick="showAllTargets('selected')">전체보기</button>
+                    </label>
+                    <div id="selectedTargetList" class="target-list" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- INI 템플릿 선택 -->
+            <div class="template-section">
+                <h4>템플릿 선택</h4>
+                <div class="template-buttons">
+                    <!-- 저장된 커스텀 템플릿들이 동적으로 추가됩니다 -->
+                </div>
+            </div>
+
+            <!-- INI 내용 작성 -->
+            <div class="ini-editor">
+                <h4>INI 파일 내용
+                    <button type="button" onclick="saveTemplate()" style="float: right; font-size: 0.8em; padding: 2px 6px; margin-left: 4px;">저장</button>
+                    <button type="button" onclick="deleteTemplate()" style="float: right; font-size: 0.8em; padding: 2px 6px;">삭제</button>
+                </h4>
+                <textarea id="iniContent" rows="12">[Commands]
+action=START
+target=VM_Flow_LoY.exe
+priority=HIGH
+delay=1000
+
+[Settings]
+auto_retry=true
+retry_count=3
+timeout=30000</textarea>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <h4>전송 로그</h4>
+            <div class="result-log" id="transmissionLog">
+                <div id="logContent">
+                    전송을 시작하면 로그가 여기에 표시됩니다.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 전송 버튼 -->
+    <div class="modal-footer">
+        <button id="sendCommand" class="btn-send">전송</button>
+        <button id="cancelCommand" class="btn-cancel">취소</button>
+    </div>
+</div>
+</div>
+
+<!-- 로딩 오버레이 -->
+<div id="loadingOverlay" class="loading-overlay" style="display:none;">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <p id="loadingMessage">전송 중...</p>
+    </div>
+</div>
+
+</body>

@@ -1,0 +1,680 @@
+/* 📱 기본 페이지 스타일 */
+body {
+    margin: 0;
+    padding: 24px 0 24px 24px; /* 우측 패딩만 제거 */
+    font-family: 'Segoe UI', sans-serif;
+    background: #fff;
+    color: #333;
+}
+
+/* 📊 대시보드 메인 타이틀 스타일 */
+h1.dashboard-title {
+    font-size: 1.2em !important;
+    margin: 15px 0 15px 0 !important;
+    font-weight: bold !important;
+    color: #333;
+}
+
+/* 📊 차트 제목 스타일 */
+h2 {
+    font-size: 1em;
+    margin: 6px 0;
+    font-weight: 500;
+    text-align: center;
+    color: #333;
+}
+
+ /* 📈 트렌드 차트 캔버스 스타일 */
+canvas#totalTrendChart {
+    display: block;
+    margin: 20px auto;
+    max-width: 100%;
+}
+
+/* 🎯 드래그 앤 드롭 상태 표시 */
+.highlight {
+    outline: 2px dashed #007bff;
+    border-radius: 6px;
+}
+
+.ghost-card {
+    opacity: 0.25; /* 드래그 중인 카드를 반투명하게 */
+    filter: grayscale(60%); /* 회색톤으로 변경 */
+    background-color: #f2f2f2;
+    pointer-events: none; /* 마우스 이벤트 차단 */
+}
+
+/* 🔧 우측 상단 컨트롤 버튼들 */
+.button-bar {
+    position: fixed;
+    top: 4px;
+    right: 10px;
+    display: flex;
+    gap: 6px;
+    z-index: 999; /* 다른 요소들 위에 표시 */
+}
+
+.button-bar button,
+.button-bar select {
+    font-size: 0.8em;
+    padding: 3px 8px;
+    border: 1px solid #ccc;
+    background: none;
+    color: #333;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* 📋 좌측 상단 서버 요약 정보 */
+.server-summary {
+    position: fixed;
+    top: 4px;
+    left: 10px;
+    z-index: 999;
+    font-size: 0.85em;
+    background: rgba(255, 255, 255, 0.8); /* 반투명 배경 */
+    padding: 4px 6px;
+    border-radius: 4px;
+    max-width: 90%;
+    line-height: 1.4em;
+    color: #333;
+}
+
+/* 🖱️ 서버 요약의 클릭 가능한 요소들 */
+.server-summary span {
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.server-summary span.active {
+    font-weight: bold;
+    color: #007bff;
+    text-decoration: underline;
+}
+
+/* 🏗️ 메인 카드 그리드 레이아웃 */
+.grid {
+    display: flex; /* 🔁 변경 */
+    flex-wrap: wrap; /* 줄바꿈 허용 */
+    gap: 6px 6px; /* 세로 간격 6px, 가로 간격 6px */
+    row-gap: 16px; /* 줄 사이 간격 16px (6px + 10px 추가) */
+    justify-content: flex-start; /* 왼쪽부터 정렬 */
+    margin-top: 48px; /* 상단 고정 요소들과 간격 확보 */
+    margin-right: 8px; /* 우측 여백 */
+}
+
+/* 🎴 개별 클라이언트 카드 스타일 */
+.card {
+    /* 📐 크기 설정: 20개 카드 기준으로 자동 계산된 폭 */
+    width: calc((100% - 19 * 6px) / 20); /* 💡 20개 카드 + 19개 간격 기준으로 자동 폭 설정 */
+    max-width: 90px; /* ✨ 최대 90px까지만 넓어지게 제한 (선택) */
+
+    /* 🎨 기본 외관 */
+    background: #fcfcfc; /* 또는 #fefefe, #f9f9f9 */
+    font-size: 0.68em;
+    text-align: center;
+    box-sizing: border-box;
+    position: relative;
+
+    /* 🖼️ 테두리 및 그림자 효과 */
+    border: 1px solid #999;       /* ✅ 더 진한 회색 테두리 */
+    border-left: 3px solid #555;  /* ✅ 강조용 포인트: 어두운 회색 */
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08),
+                0 4px 8px rgba(0, 0, 0, 0.12); /* 아래로 진하게 더블 그림자 */
+    padding: 3px; /* 💡 살짝 줄여서 더 안정적 정렬 */
+    transition: transform 0.15s ease-in-out; /* 호버 애니메이션 */
+    cursor: pointer;  /* 맨 끝에 추가 */
+}
+
+/* ✨ 카드 호버 효과 */
+.card:hover {
+  transform: translateY(-3px) scale(1.03); /* 살짝 위로 이동 + 확대 */
+  box-shadow: 0 10px 16px rgba(0, 0, 0, 0.18); /* 더 진한 그림자 */
+}
+
+/* 📝 카드 내 클라이언트 이름 */
+.name {
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #222;
+}
+
+/* 📊 카드 내 상세 정보 */
+.info {
+    line-height: 1.3em;
+    color: #555;
+    word-break: break-word;
+}
+
+/* 📭 빈 카드 스타일 */
+.empty {
+    opacity: 0.4;
+    font-style: italic;
+    border-left: none;
+}
+
+/* 🗑️ 카드 삭제 버튼 */
+.delete-btn {
+    position: absolute;
+    top: 2px;
+    right: 6px;
+    font-size: 0.8em;
+    color: #999;
+    cursor: pointer;
+}
+
+.delete-btn:hover {
+    color: #dc3545; /* 호버시 빨간색으로 변경 */
+}
+
+/* INI 명령 전송 기능 스타일 */
+.command-btn {
+    //background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.command-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* 회색 버튼 스타일 (재사용용) */
+.gray-btn {
+    font-size: 0.8em;
+    padding: 3px 8px;
+    border: 1px solid #ccc;
+    background: none;
+    color: #333;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;  /* 부드러운 전환 효과 */
+}
+
+.gray-btn:hover {
+    transform: translateY(-1px);  /* 위로 1픽셀 이동 */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);  /* 그림자 효과 */
+    background: #f5f5f5;  /* 호버시 연한 회색 배경 */
+}
+
+/* 모달 스타일 */
+.modal {
+display: none;
+position: fixed;
+z-index: 1000;
+left: 0;
+top: 0;
+width: 100%;
+height: 100%;
+background-color: rgba(0, 0, 0, 0);
+}
+
+.modal-content {
+background: white;
+margin: 2% auto;
+padding: 0;
+border-radius: 12px;
+width: 1200px;
+height: 840px;
+color: #333;
+overflow: hidden;
+border: 1px solid #ddd;
+box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-body {
+display: flex;
+height: 680px;
+padding: 0;
+}
+
+.left-panel {
+width: 60%;
+padding: 20px;
+overflow-y: hidden; /* auto에서 hidden으로 변경 */
+}
+
+.right-panel {
+width: 40%;
+padding: 15px 10px 10px 10px; /* 좌우 패딩 20px에서 10px로 변경 */
+border-left: 1px solid #ddd;
+background: #f8f8f8;
+display: flex;
+flex-direction: column;
+}
+
+.result-log {
+flex: 1; /* 기존 height 대신 flex 사용 */
+overflow-y: auto;
+border: 1px solid #ddd;
+padding: 15px;
+background: white;
+font-family: monospace;
+font-size: 12px;
+border-radius: 4px; /* 추가 */
+}
+
+.right-panel h4 {
+margin: 0 0 10px 0;
+font-size: 14px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px solid #4a5568;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.close {
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close:hover {
+    color: #ff6b6b;
+}
+
+/* 대상 선택 섹션 */
+.target-selection {
+padding: 8px 15px; /* 더 줄임 */
+background: #f8f8f8;
+border-bottom: 1px solid #ddd;
+}
+
+.target-selection h4 {
+margin: 0 0 5px 0; /* 제목 여백 최소화 */
+font-size: 13px; /* 더 작게 */
+display: inline-block; /* 제목도 한 줄에 */
+margin-right: 15px;
+}
+
+.target-selection label {
+display: inline-block; /* 한 줄 배치 */
+margin: 0 10px 0 0; /* 최소 간격 */
+cursor: pointer;
+padding: 2px 6px; /* 최소 패딩 */
+border-radius: 3px;
+font-size: 12px; /* 폰트 작게 */
+}
+
+.selected-display {
+margin-top: 5px; /* 간격 최소화 */
+padding: 5px 8px; /* 패딩 줄임 */
+background: #f0f0f0;
+border-radius: 4px;
+font-size: 11px; /* 작게 */
+border-left: 2px solid #999;
+}
+/* 템플릿 섹션 */
+.template-section {
+    padding: 20px 25px;
+    border-bottom: 1px solid #4a5568;
+}
+
+.template-section h4 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+}
+
+.template-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.template-buttons button {
+background: none;
+color: #333;
+border: 1px solid #ccc;
+padding: 8px 16px;
+border-radius: 4px;
+font-size: 13px;
+cursor: pointer;
+transition: all 0.3s ease;
+}
+
+.template-buttons button:hover {
+transform: translateY(-1px);
+box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+background: #f5f5f5;
+}
+
+.template-buttons button:last-child {
+background: none;
+color: #333;
+border: 1px solid #ccc;
+padding: 8px 16px;
+border-radius: 4px;
+font-size: 13px;
+cursor: pointer;
+transition: all 0.3s ease;
+}
+
+.template-buttons button:last-child:hover {
+transform: translateY(-1px);
+box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+background: #f5f5f5;
+}
+
+
+
+/* INI 에디터 */
+.ini-editor {
+    padding: 20px 25px;
+}
+
+.ini-editor h4 {
+margin: 5px 0 10px 0; /* 위 여백 5px, 아래 여백 10px로 줄임 */
+font-size: 16px;
+}
+
+.ini-editor textarea {
+width: 100%;
+min-height: 430px;
+background: white;
+color: #2c3e50;
+border: 2px solid #e1e8ed;
+border-radius: 8px;
+padding: 20px;
+font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+font-size: 15px;
+font-weight: 500;
+line-height: 1.2;
+letter-spacing: 0.3px;
+resize: vertical;
+transition: all 0.3s ease;
+box-sizing: border-box;
+}
+
+.ini-editor textarea:focus {
+outline: none;
+border-color: #95a5a6;
+background: #fdfdfd;
+box-shadow: 0 0 0 3px rgba(149, 165, 166, 0.1);
+}
+
+.ini-editor textarea::placeholder {
+color: #7f8c8d;
+font-style: normal;
+font-weight: 400;
+}
+
+/* 전송 대상 관련 스타일 */
+.target-option {
+margin-bottom: 8px;
+}
+
+.target-preview {
+font-size: 0.9em;
+color: #666;
+margin-left: 5px;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+max-width: 300px;
+display: inline-block;
+}
+
+.expand-icon {
+cursor: pointer;
+margin-left: 8px;
+color: #666;
+font-size: 0.8em;
+transition: transform 0.2s ease;
+}
+
+.expand-icon:hover {
+color: #333;
+}
+
+.expand-icon.expanded {
+transform: rotate(180deg);
+}
+
+.mini-show-all-btn {
+margin-left: 6px;
+padding: 1px 6px;
+font-size: 0.75em;
+background: #f0f0f0;
+border: 1px solid #ccc;
+border-radius: 3px;
+color: #666;
+cursor: pointer;
+transition: all 0.2s ease;
+transform: scale(1);
+}
+
+.mini-show-all-btn:hover {
+background: #e0e0e0;
+color: #333;
+}
+
+.mini-show-all-btn:active {
+transform: scale(0.95);
+}
+
+.target-list {
+margin-left: 20px;
+margin-top: 8px;
+background: #f9f9f9;
+border-radius: 4px;
+padding: 12px;
+font-size: 0.9em;
+}
+
+.target-list.grid-view {
+display: grid !important;
+grid-template-columns: repeat(5, 1fr) !important;
+gap: 6px;
+max-height: 150px;
+overflow-y: auto;
+}
+
+.target-list .client-item {
+padding: 4px 8px;
+background: white;
+border: 1px solid #ddd;
+border-radius: 3px;
+color: #555;
+text-align: center;
+font-size: 0.85em;
+display: block;
+width: 100%;
+box-sizing: border-box;
+cursor: pointer;
+transition: all 0.2s ease;
+}
+
+.target-list .client-item:hover {
+background: #f0f0f0;
+border-color: #bbb;
+}
+
+.target-list .client-item.selected {
+background: #e3f2fd;
+border-color: #2196f3;
+color: #1976d2;
+font-weight: bold;
+}
+
+.target-list .show-all-btn {
+grid-column: 1 / -1;
+background: #2196f3;
+border: 1px solid #1976d2;
+color: white;
+padding: 8px 16px;
+border-radius: 4px;
+font-size: 0.9em;
+font-weight: bold;
+cursor: pointer;
+text-align: center;
+order: -1;
+margin-bottom: 8px;
+}
+
+.target-list .show-all-btn:hover {
+background: #1976d2;
+transform: translateY(-1px);
+box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* 모달 푸터 */
+.modal-footer {
+padding: 15px 25px;
+border-top: 1px solid #ddd;
+display: flex;
+justify-content: center;
+gap: 10px;
+}
+
+.btn-send {
+background: none;
+color: #333;
+border: 1px solid #ccc;
+padding: 12px 24px;
+border-radius: 4px;
+font-size: 16px;
+cursor: pointer;
+transition: all 0.3s ease;
+margin: 0 5px;
+}
+
+.btn-send:hover {
+transform: translateY(-1px);
+box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+background: #f5f5f5;
+}
+
+.btn-cancel {
+background: none;
+color: #333;
+border: 1px solid #ccc;
+padding: 12px 24px;
+border-radius: 4px;
+font-size: 16px;
+cursor: pointer;
+transition: all 0.3s ease;
+margin: 0 5px;
+}
+
+.btn-cancel:hover {
+transform: translateY(-1px);
+box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+background: #f5f5f5;
+}
+
+/* 로딩 오버레이 */
+.loading-overlay {
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.loading-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: white;
+}
+
+.spinner {
+    border: 4px solid #4a5568;
+    border-top: 4px solid #4299e1;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.card-checkbox {
+    position: absolute;
+    top: 2px;
+    left: 0px;
+    z-index: 10;
+    transform: scale(1.1);
+    cursor: pointer;
+}
+/* 줄 체크박스 스타일 */
+.row-checkbox-container {
+    width: 30px; /* 체크박스 공간 확보 */
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 10px;
+}
+
+.row-checkbox {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+/* 갱신 간격 버튼 스타일 */
+.refresh-btn {
+    padding: 4px 8px;
+    font-size: 0.75em;
+    border: 1px solid #ddd;
+    background: #f8f9fa;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.refresh-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.refresh-btn.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+/* 🎯 4줄마다 구분선 (80개 카드씩 한 세트) */
+#dashboard .card:nth-child(80n) {
+    margin-bottom: 20px !important;
+    border-bottom: 3px solid #007bff !important;
+    padding-bottom: 10px !important;
+    box-shadow: 0 8px 15px rgba(0,123,255,0.15) !important;
+}
+
+/* 20번째마다 줄 끝 표시 (더 명확하게) */
+#dashboard .card:nth-child(20n) {
+    margin-right: 10px !important;
+}
+
+/* JavaScript로 추가되는 구분선 클래스 */
+.set-separator {
+    margin-bottom: 25px !important;
+    border-bottom: 4px solid #007bff !important;
+    padding-bottom: 12px !important;
+    box-shadow: 0 10px 20px rgba(0,123,255,0.2) !important;
+    background: linear-gradient(to bottom, transparent, rgba(0,123,255,0.05)) !important;
+}

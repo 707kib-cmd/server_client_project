@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/user/Desktop/img_ocr_project1/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
